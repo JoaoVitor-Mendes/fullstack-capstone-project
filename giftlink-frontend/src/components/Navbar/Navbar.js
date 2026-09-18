@@ -7,7 +7,24 @@ export default function Navbar() {
 
             <div className="collapse navbar-collapse" id="navbarNav">
                 <ul className="navbar-nav">
-                    {/* Task 1: Add links to Home and Gifts below*/}
+                    <li className="nav-item">
+                        <a className="nav-link" href="/home.html">
+                            Home
+                        </a>
+                    </li>
+
+                    <li className="nav-item">
+                        <a className="nav-link" href="/">
+                            Gifts
+                        </a>
+                    </li>
+
+                    <li className="nav-item">
+                        <a className="nav-link" href="/app/search">
+                            Search
+                        </a>
+                    </li>
+                    
                 </ul>
             </div>
         </nav>
