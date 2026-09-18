@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 
 const connectToDatabase = require('../models/db');
+const { body, validationResult } = require('express-validator');
 const logger = require('../logger');
 
 dotenv.config();
@@ -116,5 +117,93 @@ router.post('/login', async (req, res) => {
         return res.status(500).send('Internal server error');
     }
 });
+
+router.put(
+    '/update',
+    [
+        body('firstName')
+            .optional()
+            .isString()
+            .withMessage('First name must be valid'),
+
+        body('lastName')
+            .optional()
+            .isString()
+            .withMessage('Last name must be valid')
+    ],
+    async (req, res) => {
+        // Task 2: Validate input
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                errors: errors.array()
+            });
+        }
+
+        try {
+            // Task 3: Check email in header
+            const email = req.headers.email;
+
+            if (!email) {
+                return res.status(400).json({
+                    error: 'Email is required'
+                });
+            }
+
+            // Task 4: Connect to MongoDB
+            const db = await connectToDatabase();
+            const collection = db.collection('users');
+
+            // Task 5: Find user
+            const existingUser = await collection.findOne({
+                email: email
+            });
+
+            if (!existingUser) {
+                return res.status(404).json({
+                    error: 'User not found'
+                });
+            }
+
+            // Update fields
+            if (req.body.firstName !== undefined) {
+                existingUser.firstName = req.body.firstName;
+            }
+
+            if (req.body.lastName !== undefined) {
+                existingUser.lastName = req.body.lastName;
+            }
+
+            existingUser.updatedAt = new Date();
+
+            // Task 6: Update user in MongoDB
+            await collection.updateOne(
+                { _id: existingUser._id },
+                {
+                    $set: {
+                        firstName: existingUser.firstName,
+                        lastName: existingUser.lastName,
+                        updatedAt: existingUser.updatedAt
+                    }
+                }
+            );
+
+            // Task 7: Generate JWT
+            const authtoken = jwt.sign(
+                { userId: existingUser._id },
+                JWT_SECRET
+            );
+
+            res.json({
+                authtoken
+            });
+
+        } catch (e) {
+            logger.error(e);
+            return res.status(500).send('Internal server error');
+        }
+    }
+);
 
 module.exports = router;
