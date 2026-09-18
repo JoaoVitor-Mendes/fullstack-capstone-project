@@ -1,12 +1,67 @@
 import React, { useState } from 'react';
 import './LoginPage.css';
 
+import { urlConfig } from '../../config';
+import { useAppContext } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
-    const handleLogin = () => {
-        console.log('Login button clicked');
+    const navigate = useNavigate();
+    const bearerToken = sessionStorage.getItem('auth-token');
+
+    const {
+        setIsLoggedIn,
+        setUserName
+    } = useAppContext();
+
+    if (bearerToken) {
+        navigate('/app');
+    }
+
+    const handleLogin = async () => {
+        try {
+            setErrorMessage('');
+
+            const response = await fetch(
+                `${urlConfig.backendUrl}/api/auth/login`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setPassword('');
+                setErrorMessage(data.error || 'Invalid email or password');
+                return;
+            }
+
+            sessionStorage.setItem('auth-token', data.authtoken);
+            sessionStorage.setItem('name', data.userName);
+            sessionStorage.setItem('email', data.userEmail);
+
+            setIsLoggedIn(true);
+            setUserName(data.userName);
+
+            navigate('/app');
+
+        } catch (e) {
+            console.log('Error fetching details: ' + e.message);
+            setPassword('');
+            setErrorMessage('Unable to login. Please try again.');
+        }
     };
 
     return (
@@ -14,6 +69,7 @@ function LoginPage() {
             <div className="row justify-content-center">
                 <div className="col-md-6 col-lg-4">
                     <div className="login-card p-4 border rounded">
+
                         <h2 className="text-center mb-4 font-weight-bold">
                             Login
                         </h2>
@@ -36,6 +92,12 @@ function LoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
+
+                            {errorMessage && (
+                                <div className="text-danger mt-2">
+                                    {errorMessage}
+                                </div>
+                            )}
                         </div>
 
                         <button
@@ -47,10 +109,14 @@ function LoginPage() {
 
                         <p className="mt-4 text-center">
                             New here?{' '}
-                            <a href="/app/register" className="text-primary">
+                            <a
+                                href="/app/register"
+                                className="text-primary"
+                            >
                                 Register
                             </a>
                         </p>
+
                     </div>
                 </div>
             </div>
